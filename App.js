@@ -34,20 +34,27 @@ const data = Object.keys(images).map((i) => ({
   ref: createRef(),
 }))
 
-const Tab = forwardRef(({ item, onItemPress }, ref) => {
+const Tab = forwardRef(({ item, onItemPress, scrollX, index }, ref) => {
+  const inputRange = [(index - 1) * width, index * width, (index + 1) * width]
+  const color = scrollX.interpolate({
+    inputRange,
+    outputRange: ['white', 'black', 'white'],
+  })
   return (
     <TouchableOpacity onPress={onItemPress}>
       <View ref={ref}>
-        <Text
+        <Animated.Text
           style={{
-            color: 'white',
+            color,
             fontSize: 84 / data.length,
             fontWeight: '800',
             textTransform: 'uppercase',
+            zIndex: 1,
+            padding: 5,
           }}
         >
           {item.title}
-        </Text>
+        </Animated.Text>
       </View>
     </TouchableOpacity>
   )
@@ -67,17 +74,18 @@ const Indicator = ({ measures, scrollX }) => {
     <Animated.View
       style={{
         position: 'absolute',
-        height: 4,
-        borderRadius: 2,
+        height: 30,
+        borderRadius: 20,
         backgroundColor: 'white',
         width: indicatorWidth,
         left: 0,
-        bottom: -10,
+        bottom: 0,
         transform: [
           {
             translateX,
           },
         ],
+        zIndex: -10,
       }}
     />
   )
@@ -118,6 +126,8 @@ const Tabs = ({ scrollX, data, onItemPress }) => {
               item={item}
               ref={item.ref}
               onItemPress={() => onItemPress(index)}
+              scrollX={scrollX}
+              index={index}
             />
           )
         })}
