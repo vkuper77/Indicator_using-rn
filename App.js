@@ -2,19 +2,19 @@ import { StatusBar } from 'expo-status-bar'
 import React, {
   createRef,
   forwardRef,
+  useCallback,
   useEffect,
-  useReducer,
   useRef,
   useState,
 } from 'react'
 import {
-  findNodeHandle,
   StyleSheet,
   View,
   Dimensions,
   Animated,
   Image,
   Text,
+  TouchableOpacity,
 } from 'react-native'
 const { width, height } = Dimensions.get('screen')
 
@@ -34,40 +34,57 @@ const data = Object.keys(images).map((i) => ({
   ref: createRef(),
 }))
 
-const Tab = forwardRef(({ item }, ref) => {
+const Tab = forwardRef(({ item, onItemPress }, ref) => {
   return (
-    <View ref={ref}>
-      <Text
-        style={{
-          color: 'white',
-          fontSize: 84 / data.length,
-          fontWeight: '800',
-          textTransform: 'uppercase',
-        }}
-      >
-        {item.title}
-      </Text>
-    </View>
+    <TouchableOpacity onPress={onItemPress}>
+      <View ref={ref}>
+        <Text
+          style={{
+            color: 'white',
+            fontSize: 84 / data.length,
+            fontWeight: '800',
+            textTransform: 'uppercase',
+          }}
+        >
+          {item.title}
+        </Text>
+      </View>
+    </TouchableOpacity>
   )
 })
 
 const Indicator = ({ measures, scrollX }) => {
+  const inputRange = data.map((_, i) => i * width)
+  const indicatorWidth = scrollX.interpolate({
+    inputRange,
+    outputRange: measures.map((measure) => measure.width),
+  })
+  const translateX = scrollX.interpolate({
+    inputRange,
+    outputRange: measures.map((measure) => measure.x),
+  })
   return (
-    <View
+    <Animated.View
       style={{
         position: 'absolute',
         height: 4,
+        borderRadius: 2,
         backgroundColor: 'white',
-        width: measures[0].width,
-        left: measures[0].x,
+        width: indicatorWidth,
+        left: 0,
         bottom: -10,
+        transform: [
+          {
+            translateX,
+          },
+        ],
       }}
     />
   )
 }
 
-const Tabs = ({ scrollX, data }) => {
-  const [measures, setMeasures] = useState()
+const Tabs = ({ scrollX, data, onItemPress }) => {
+  const [measures, setMeasures] = useState([])
   const containerRef = useRef()
   useEffect(() => {
     const m = []
@@ -94,21 +111,37 @@ const Tabs = ({ scrollX, data }) => {
           justifyContent: 'space-evenly',
         }}
       >
-        {data.map((item) => {
-          return <Tab key={item.key} item={item} ref={item.ref} />
+        {data.map((item, index) => {
+          return (
+            <Tab
+              key={item.key}
+              item={item}
+              ref={item.ref}
+              onItemPress={() => onItemPress(index)}
+            />
+          )
         })}
       </View>
-      {measures.length && <Indicator measures={measures} scrollX={scrollX} />}
+      {measures.length ? (
+        <Indicator measures={measures} scrollX={scrollX} />
+      ) : null}
     </View>
   )
 }
 
 export default function App() {
   const scrollX = useRef(new Animated.Value(0)).current
+  const ref = useRef()
+  const onItemPress = useCallback((itemIndex) => {
+    ref?.current?.scrollToOffset({
+      offset: itemIndex * width,
+    })
+  })
   return (
     <View style={styles.container}>
       <StatusBar hidden />
       <Animated.FlatList
+        ref={ref}
         data={data}
         keyExtractor={(item) => item.key.toString()}
         horizontal
@@ -140,7 +173,7 @@ export default function App() {
           )
         }}
       />
-      <Tabs scrollX={scrollX} data={data} />
+      <Tabs scrollX={scrollX} data={data} onItemPress={onItemPress} />
     </View>
   )
 }
